@@ -16,46 +16,37 @@ interface Props {
 }
 
 export default function SankeyChart({ categories, totalSpending, monthLabel }: Props) {
-  const filtered = categories.filter((c) => c.total > 0);
-
-  if (filtered.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "3rem", color: "#475569" }}>
-        Keine Daten für diesen Monat
-      </div>
-    );
-  }
+  if (categories.length === 0 || totalSpending === 0) return null;
 
   const nodes = [
     { name: monthLabel },
-    ...filtered.map((c) => ({ name: `${c.icon} ${c.name}` })),
+    ...categories.map(c => ({ name: c.name })),
   ];
 
-  const links = filtered.map((c, i) => ({
+  const links = categories.map((c, i) => ({
     source: 0,
     target: i + 1,
-    value: Math.abs(c.total),
+    value: c.total,
   }));
 
-  const COLORS = filtered.map((c) => c.color);
+  const colors = categories.map(c => c.color);
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={280}>
       <Sankey
         data={{ nodes, links }}
-        nodePadding={16}
-        nodeWidth={20}
-        margin={{ top: 10, right: 160, bottom: 10, left: 10 }}
-        node={({ x, y, width, height, index }: { x: number; y: number; width: number; height: number; index: number }) => {
-          const color = index === 0 ? "#6366f1" : COLORS[index - 1] ?? "#6366f1";
-          return (
-            <Rectangle
-              x={x} y={y} width={width} height={height}
-              fill={color} fillOpacity={0.9} radius={4}
-            />
-          );
-        }}
-        link={{ stroke: "#6366f1", strokeOpacity: 0.15 }}
+        nodePadding={12}
+        nodeWidth={16}
+        margin={{ top: 8, right: 180, bottom: 8, left: 8 }}
+        node={({ x, y, width, height, index }: { x: number; y: number; width: number; height: number; index: number }) => (
+          <Rectangle
+            x={x} y={y} width={width} height={height}
+            fill={index === 0 ? "#18181b" : (colors[index - 1] ?? "#6366f1")}
+            fillOpacity={0.85}
+            radius={3}
+          />
+        )}
+        link={{ stroke: "#e4e4e7", strokeOpacity: 0.8 }}
       >
         <Tooltip
           formatter={(value) =>
@@ -64,11 +55,12 @@ export default function SankeyChart({ categories, totalSpending, monthLabel }: P
               : String(value)
           }
           contentStyle={{
-            background: "#13131a",
-            border: "1px solid #2d2d44",
-            borderRadius: "8px",
-            color: "#e2e8f0",
-            fontSize: "0.875rem",
+            background: "#ffffff",
+            border: "1px solid #e4e4e7",
+            borderRadius: "6px",
+            color: "#18181b",
+            fontSize: "0.8rem",
+            boxShadow: "0 1px 6px rgba(0,0,0,0.08)",
           }}
         />
       </Sankey>

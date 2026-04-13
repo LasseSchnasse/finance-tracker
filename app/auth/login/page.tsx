@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [email, setEmail]   = useState("");
+  const [sent, setSent]     = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -21,55 +21,39 @@ export default function LoginPage() {
   };
 
   return (
-    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
-      <div style={{ background: "#1e293b", padding: "2rem", borderRadius: "1rem", width: "100%", maxWidth: "400px" }}>
-        <h1 style={{ color: "#f8fafc", fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-          AI Finance Tracker
-        </h1>
-        <p style={{ color: "#94a3b8", marginBottom: "2rem", fontSize: "0.875rem" }}>
-          Magic Link — kein Passwort nötig.
-        </p>
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+
+        <div className="mb-10">
+          <p className="text-xs text-zinc-400 uppercase tracking-widest mb-3">Finance Tracker</p>
+          <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Anmelden</h1>
+          <p className="text-sm text-zinc-400 mt-1">Wir schicken dir einen Magic Link.</p>
+        </div>
 
         {sent ? (
-          <div style={{ color: "#22c55e", textAlign: "center", padding: "1rem" }}>
-            Mail gesendet! Klicke den Link in deinem Postfach.
+          <div className="border border-zinc-100 rounded-xl p-6 bg-zinc-50 text-sm text-zinc-600">
+            Mail verschickt — klick auf den Link in deinem Postfach.
           </div>
         ) : (
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <input
               type="email"
               placeholder="deine@email.de"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
-              style={{
-                padding: "0.75rem 1rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #334155",
-                background: "#0f172a",
-                color: "#f8fafc",
-                fontSize: "1rem",
-              }}
+              className="w-full px-4 py-3 text-sm border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 transition-colors placeholder:text-zinc-300"
             />
             <button
               type="submit"
               disabled={loading}
-              style={{
-                padding: "0.75rem",
-                borderRadius: "0.5rem",
-                background: "#3b82f6",
-                color: "white",
-                fontWeight: 600,
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-              }}
+              className="w-full py-3 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-50"
             >
               {loading ? "Sende..." : "Magic Link senden"}
             </button>
           </form>
         )}
       </div>
-    </main>
+    </div>
   );
 }

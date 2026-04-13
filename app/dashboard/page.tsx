@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import MonthNav from "./MonthNav";
 import SankeyChart from "./SankeyChart";
 
-const MONTHS = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-];
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 
 interface Transaction {
   id: string;
@@ -17,15 +14,10 @@ interface Transaction {
   categories: { name: string; color: string; icon: string } | null;
 }
 
-interface SearchParams {
-  year?: string;
-  month?: string;
-}
-
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<{ year?: string; month?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -33,223 +25,171 @@ export default async function DashboardPage({
 
   const params = await searchParams;
   const now = new Date();
-  const year = parseInt(params.year ?? String(now.getFullYear()));
+  const year  = parseInt(params.year  ?? String(now.getFullYear()));
   const month = parseInt(params.month ?? String(now.getMonth() + 1));
 
   const startOfMonth = new Date(year, month - 1, 1).toISOString();
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+  const endOfMonth   = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("webhook_secret")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: transactions }, { data: allCategories }] = await Promise.all([
+    supabase.from("profiles").select("webhook_secret").eq("id", user.id).single(),
+    supabase
+      .from("transactions")
+      .select("id, amount, currency, merchant, transacted_at, categories ( name, color, icon )")
+      .eq("user_id", user.id)
+      .gte("transacted_at", startOfMonth)
+      .lte("transacted_at", endOfMonth)
+      .order("transacted_at", { ascending: false })
+      .returns<Transaction[]>(),
+    supabase.from("categories").select("name, color, icon").is("user_id", null),
+  ]);
 
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select(`id, amount, currency, merchant, transacted_at, categories ( name, color, icon )`)
-    .eq("user_id", user.id)
-    .gte("transacted_at", startOfMonth)
-    .lte("transacted_at", endOfMonth)
-    .order("transacted_at", { ascending: false })
-    .returns<Transaction[]>();
+  const txList       = transactions ?? [];
+  const totalOut     = txList.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const totalIn      = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const largestTx    = txList.filter(t => t.amount < 0).sort((a, b) => a.amount - b.amount)[0] ?? null;
 
-  const { data: allCategories } = await supabase
-    .from("categories")
-    .select("name, color, icon")
-    .is("user_id", null);
-
-  const txList = transactions ?? [];
-  const totalSpending = txList.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-  const totalIncome = txList.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const largestTx = txList.reduce((max, t) => Math.abs(t.amount) > Math.abs(max?.amount ?? 0) ? t : max, txList[0] ?? null);
-
-  // Aggregiere nach Kategorie für Sankey
-  const categoryMap: Record<string, { total: number; color: string; icon: string }> = {};
-  for (const tx of txList.filter((t) => t.amount < 0)) {
-    const cat = tx.categories?.name ?? "Sonstiges";
-    const color = tx.categories?.color ?? "#9ca3af";
-    const icon = tx.categories?.icon ?? "📋";
-    if (!categoryMap[cat]) categoryMap[cat] = { total: 0, color, icon };
-    categoryMap[cat].total += Math.abs(tx.amount);
-  }
-
-  // Fehlende Kategorien aus allCategories ergänzen
+  // Kategorie-Aggregation für Sankey
+  const catMap: Record<string, { total: number; color: string; icon: string }> = {};
   for (const cat of allCategories ?? []) {
-    if (!categoryMap[cat.name]) {
-      categoryMap[cat.name] = { total: 0, color: cat.color, icon: cat.icon };
-    }
+    catMap[cat.name] = { total: 0, color: cat.color, icon: cat.icon };
   }
-
-  const categoryData = Object.entries(categoryMap)
-    .map(([name, data]) => ({ name, ...data }))
-    .filter((c) => c.total > 0)
+  for (const tx of txList.filter(t => t.amount < 0)) {
+    const name  = tx.categories?.name  ?? "Sonstiges";
+    const color = tx.categories?.color ?? "#9ca3af";
+    const icon  = tx.categories?.icon  ?? "📋";
+    if (!catMap[name]) catMap[name] = { total: 0, color, icon };
+    catMap[name].total += Math.abs(tx.amount);
+  }
+  const categoryData = Object.entries(catMap)
+    .map(([name, d]) => ({ name, ...d }))
+    .filter(c => c.total > 0)
     .sort((a, b) => b.total - a.total);
 
   const webhookUrl = profile?.webhook_secret
     ? `${process.env.NEXT_PUBLIC_APP_URL ?? "https://finance-tracker-weld-seven.vercel.app"}/api/webhook/${profile.webhook_secret}`
     : null;
 
-  const monthLabel = `${MONTHS[month - 1]} ${year}`;
+  const fmt = (n: number, currency = "EUR") =>
+    n.toLocaleString("de-DE", { style: "currency", currency, minimumFractionDigits: 2 });
 
   return (
-    <main style={{ minHeight: "100vh", background: "#0a0a0f", color: "#e2e8f0", fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-white">
 
-      {/* Sidebar / Topbar */}
-      <div style={{ borderBottom: "1px solid #1e1e2e", padding: "1rem 2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div style={{ width: "32px", height: "32px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>
-            💳
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.02em" }}>Finance Tracker</span>
-        </div>
-        <span style={{ color: "#475569", fontSize: "0.8rem" }}>{user.email}</span>
-      </div>
-
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "2rem" }}>
-
-        {/* Header + Monatsnavigation */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-          <div>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.03em", margin: 0 }}>Übersicht</h1>
-            <p style={{ color: "#475569", fontSize: "0.875rem", margin: "0.25rem 0 0" }}>{txList.length} Transaktionen</p>
-          </div>
+      {/* Top bar */}
+      <header className="border-b border-zinc-100 px-8 py-4 flex items-center justify-between">
+        <span className="text-sm font-medium text-zinc-400 tracking-wide uppercase">Finance Tracker</span>
+        <div className="flex items-center gap-6">
           <MonthNav year={year} month={month} />
+          <span className="text-xs text-zinc-300">{user.email}</span>
         </div>
+      </header>
 
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
-          <div style={cardStyle}>
-            <p style={labelStyle}>Ausgaben</p>
-            <p style={{ ...valueStyle, color: "#f43f5e" }}>
-              {totalSpending.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+      <main className="max-w-4xl mx-auto px-8 py-12">
+
+        {/* KPI Row — kein Card, nur Zahlen */}
+        <div className="grid grid-cols-3 gap-0 mb-16">
+          <div className="pr-8 border-r border-zinc-100">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Ausgaben</p>
+            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {fmt(Math.abs(totalOut))}
             </p>
+            <p className="text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Transaktionen</p>
           </div>
-          <div style={cardStyle}>
-            <p style={labelStyle}>Einnahmen</p>
-            <p style={{ ...valueStyle, color: "#22d3ee" }}>
-              {totalIncome.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
+          <div className="px-8 border-r border-zinc-100">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Einnahmen</p>
+            <p className="text-4xl font-semibold tracking-tight text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {fmt(totalIn)}
             </p>
+            <p className="text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Buchungen</p>
           </div>
-          <div style={cardStyle}>
-            <p style={labelStyle}>Größte Ausgabe</p>
-            <p style={{ ...valueStyle, color: "#e2e8f0" }}>
-              {largestTx
-                ? Math.abs(largestTx.amount).toLocaleString("de-DE", { style: "currency", currency: largestTx.currency })
-                : "—"}
+          <div className="pl-8">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Größte Ausgabe</p>
+            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {largestTx ? fmt(Math.abs(largestTx.amount), largestTx.currency) : "—"}
             </p>
-            {largestTx?.merchant && (
-              <p style={{ color: "#475569", fontSize: "0.75rem", marginTop: "0.25rem" }}>{largestTx.merchant}</p>
-            )}
+            <p className="text-xs text-zinc-400 mt-1">{largestTx?.merchant ?? "—"}</p>
           </div>
         </div>
 
         {/* Sankey */}
-        <div style={{ ...cardStyle, marginBottom: "1.5rem", padding: "1.5rem" }}>
-          <p style={{ ...labelStyle, marginBottom: "1.25rem" }}>Ausgaben nach Kategorie</p>
-          <SankeyChart
-            categories={categoryData}
-            totalSpending={Math.abs(totalSpending)}
-            monthLabel={monthLabel}
-          />
-        </div>
-
-        {/* Kategorien-Legende */}
         {categoryData.length > 0 && (
-          <div style={{ ...cardStyle, marginBottom: "1.5rem", padding: "1.25rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-              {categoryData.map((cat) => (
-                <div key={cat.name} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#1e1e2e", padding: "0.4rem 0.75rem", borderRadius: "999px" }}>
-                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: cat.color }} />
-                  <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{cat.icon} {cat.name}</span>
-                  <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#e2e8f0" }}>
-                    {cat.total.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
-                  </span>
+          <section className="mb-16">
+            <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-6">
+              Verteilung {MONTHS[month - 1]}
+            </h2>
+            <SankeyChart
+              categories={categoryData}
+              totalSpending={Math.abs(totalOut)}
+              monthLabel={`${MONTHS[month - 1]} ${year}`}
+            />
+            {/* Legende */}
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5">
+              {categoryData.map(cat => (
+                <div key={cat.name} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                  <span className="text-xs text-zinc-500">{cat.name}</span>
+                  <span className="text-xs font-medium text-zinc-700">{fmt(cat.total)}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Transaktionsliste */}
-        <div style={cardStyle}>
-          <p style={{ ...labelStyle, marginBottom: "1rem", padding: "0 0.25rem" }}>Transaktionen</p>
+        <section>
+          <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-4">Transaktionen</h2>
+
           {txList.length === 0 ? (
-            <p style={{ color: "#334155", textAlign: "center", padding: "3rem", fontSize: "0.875rem" }}>
-              Keine Transaktionen in diesem Monat.
+            <p className="text-sm text-zinc-300 py-12 text-center">
+              Keine Transaktionen in {MONTHS[month - 1]}.
             </p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {txList.map((t) => (
-                <div key={t.id} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "0.875rem 1rem", background: "#0f0f17", borderRadius: "10px",
-                  border: "1px solid #1a1a2a",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-                    <div style={{
-                      width: "38px", height: "38px", borderRadius: "10px",
-                      background: `${t.categories?.color ?? "#6366f1"}22`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "1.1rem", flexShrink: 0,
-                    }}>
+            <div className="divide-y divide-zinc-100">
+              {txList.map(t => (
+                <div key={t.id} className="flex items-center justify-between py-3.5 group">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
+                      style={{ background: `${t.categories?.color ?? "#6366f1"}18` }}
+                    >
                       {t.categories?.icon ?? "💳"}
                     </div>
                     <div>
-                      <p style={{ fontWeight: 600, fontSize: "0.875rem", margin: 0 }}>
+                      <p className="text-sm font-medium text-zinc-800 leading-none">
                         {t.merchant ?? "Unbekannt"}
                       </p>
-                      <p style={{ color: "#475569", fontSize: "0.75rem", margin: "0.15rem 0 0" }}>
-                        {t.categories?.name ?? "Sonstiges"} · {new Date(t.transacted_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
+                      <p className="text-xs text-zinc-400 mt-1">
+                        {t.categories?.name ?? "Sonstiges"}
                       </p>
                     </div>
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: "0.95rem", color: t.amount < 0 ? "#f43f5e" : "#22d3ee" }}>
-                    {t.amount > 0 ? "+" : ""}
-                    {t.amount.toLocaleString("de-DE", { style: "currency", currency: t.currency })}
-                  </span>
+                  <div className="flex items-center gap-8">
+                    <span className="text-xs text-zinc-300">
+                      {new Date(t.transacted_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
+                    </span>
+                    <span
+                      className="text-sm font-medium w-24 text-right"
+                      style={{ fontVariantNumeric: "tabular-nums", color: t.amount < 0 ? "#dc2626" : "#16a34a" }}
+                    >
+                      {t.amount > 0 ? "+" : ""}{fmt(t.amount, t.currency)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Webhook URL */}
+        {/* Webhook — dezent am Seitenende */}
         {webhookUrl && (
-          <div style={{ marginTop: "1.5rem", padding: "1rem 1.25rem", background: "#0f0f17", border: "1px solid #1e1e2e", borderRadius: "12px" }}>
-            <p style={{ color: "#334155", fontSize: "0.75rem", marginBottom: "0.5rem", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-              Webhook URL
-            </p>
-            <code style={{ fontSize: "0.72rem", color: "#6366f1", wordBreak: "break-all" }}>
-              {webhookUrl}
-            </code>
+          <div className="mt-16 pt-8 border-t border-zinc-100">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Webhook URL</p>
+            <code className="text-xs text-zinc-400 break-all">{webhookUrl}</code>
           </div>
         )}
 
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: "#13131a",
-  border: "1px solid #1e1e2e",
-  borderRadius: "14px",
-  padding: "1.25rem",
-};
-
-const labelStyle: React.CSSProperties = {
-  color: "#475569",
-  fontSize: "0.75rem",
-  fontWeight: 600,
-  letterSpacing: "0.05em",
-  textTransform: "uppercase",
-  margin: 0,
-};
-
-const valueStyle: React.CSSProperties = {
-  fontSize: "1.75rem",
-  fontWeight: 700,
-  letterSpacing: "-0.03em",
-  margin: "0.375rem 0 0",
-};
