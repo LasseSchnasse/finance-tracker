@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export interface ParsedTransaction {
   amount: number;         // Negativ = Ausgabe, Positiv = Eingang
@@ -52,15 +52,19 @@ Rules:
 export async function parseTransaction(
   rawText: string
 ): Promise<ParsedTransaction> {
-  const model = client.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    systemInstruction: SYSTEM_PROMPT,
+  const completion = await client.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: rawText },
+    ],
+    max_tokens: 256,
+    temperature: 0.1,
   });
 
-  const result = await model.generateContent(rawText);
-  const responseText = result.response.text();
+  const responseText = completion.choices[0]?.message?.content ?? "";
 
-  // Gemini gibt manchmal Markdown-Code-Blöcke zurück — bereinigen
+  // Modell gibt manchmal Markdown-Code-Blöcke zurück — bereinigen
   const jsonText = responseText
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
@@ -68,7 +72,6 @@ export async function parseTransaction(
 
   const parsed = JSON.parse(jsonText) as ParsedTransaction;
 
-  // Validierung der Pflichtfelder
   if (typeof parsed.amount !== "number") {
     throw new Error("Invalid amount in parsed response");
   }
