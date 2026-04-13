@@ -18,7 +18,12 @@ export async function POST(
     .single();
 
   if (profileError || !profile) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    console.error("Profile lookup failed:", JSON.stringify(profileError));
+    console.error("Token received:", token);
+    return NextResponse.json(
+      { error: "Invalid token", detail: profileError?.message ?? "no profile found" },
+      { status: 401 }
+    );
   }
 
   const userId = profile.id;
