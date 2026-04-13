@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const client = new Anthropic();
+const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export interface ParsedTransaction {
   amount: number;         // Negativ = Ausgabe, Positiv = Eingang
@@ -52,25 +52,16 @@ Rules:
 export async function parseTransaction(
   rawText: string
 ): Promise<ParsedTransaction> {
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 256,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: rawText,
-      },
-    ],
+  const model = client.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    systemInstruction: SYSTEM_PROMPT,
   });
 
-  const content = message.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected response type from Claude");
-  }
+  const result = await model.generateContent(rawText);
+  const responseText = result.response.text();
 
-  // Claude gibt manchmal Markdown-Code-Blöcke zurück — bereinigen
-  const jsonText = content.text
+  // Gemini gibt manchmal Markdown-Code-Blöcke zurück — bereinigen
+  const jsonText = responseText
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
     .trim();
