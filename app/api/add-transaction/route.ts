@@ -25,12 +25,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Parsing failed" }, { status: 500 });
   }
 
-  const { data: category } = await supabase
+  const { data: categories } = await supabase
     .from("categories")
     .select("id")
     .eq("name", parsed.category)
     .is("user_id", null)
-    .single();
+    .limit(1);
+  const category = categories?.[0];
 
   const { data: transaction, error: insertError } = await supabase
     .from("transactions")
