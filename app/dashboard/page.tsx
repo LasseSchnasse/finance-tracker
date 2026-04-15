@@ -128,37 +128,37 @@ export default async function DashboardPage({
       <main className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-12">
 
         {/* KPI Row */}
-        <div className="grid grid-cols-3 gap-0 mb-8 sm:mb-16">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-0 mb-8 sm:mb-16">
           <div className="pr-4 sm:pr-8 border-r border-zinc-100">
-            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Ausgaben</p>
-            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-1">Ausgaben</p>
+            <p className="text-2xl sm:text-4xl font-semibold tracking-tight text-zinc-900 truncate" style={{ fontVariantNumeric: "tabular-nums" }}>
               {fmt(Math.abs(totalOut))}
             </p>
-            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Tx</p>
+            <p className="text-[10px] text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Transaktionen</p>
           </div>
-          <div className="px-4 sm:px-8 border-r border-zinc-100">
-            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Einnahmen</p>
-            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="pl-4 sm:px-8 sm:border-r border-zinc-100">
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-1">Einnahmen</p>
+            <p className="text-2xl sm:text-4xl font-semibold tracking-tight text-emerald-600 truncate" style={{ fontVariantNumeric: "tabular-nums" }}>
               {fmt(totalIn)}
             </p>
-            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Tx</p>
+            <p className="text-[10px] text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Buchungen</p>
           </div>
-          <div className="pl-4 sm:pl-8">
-            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Größte</p>
-            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="hidden sm:block pl-8">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Größte Ausgabe</p>
+            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
               {largestTx ? fmt(Math.abs(largestTx.amount), largestTx.currency) : "—"}
             </p>
-            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1 truncate">{largestTx?.merchant ?? "—"}</p>
+            <p className="text-xs text-zinc-400 mt-1">{largestTx?.merchant ?? "—"}</p>
           </div>
         </div>
 
         {/* Eingabe — auf Mobile ganz oben */}
         <AddTransaction />
 
-        {/* Sankey — nur auf größeren Screens */}
+        {/* Sankey */}
         {(categoryData.length > 0 || totalIn > 0) && (
-          <section className="hidden sm:block mb-16">
-            <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-6">
+          <section className="mb-8 sm:mb-16">
+            <h2 className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-4 sm:mb-6">
               Verteilung {MONTHS[month - 1]}
             </h2>
             <SankeyChart
@@ -167,31 +167,12 @@ export default async function DashboardPage({
               totalIncome={totalIn}
               monthLabel={`${MONTHS[month - 1]} ${year}`}
             />
-            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
               {categoryData.map(cat => (
-                <div key={cat.name} className="flex items-center gap-2">
+                <div key={cat.name} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                   <span className="text-xs text-zinc-500">{cat.name}</span>
                   <span className="text-xs font-medium text-zinc-700">{fmt(cat.total)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Kategorie-Übersicht auf Mobile statt Sankey */}
-        {categoryData.length > 0 && (
-          <section className="sm:hidden mb-8">
-            <h2 className="text-[10px] text-zinc-400 uppercase tracking-widest mb-3">Kategorien</h2>
-            <div className="flex flex-col gap-2">
-              {categoryData.map(cat => (
-                <div key={cat.name} className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                  <span className="text-sm text-zinc-600 flex-1">{cat.name}</span>
-                  <span className="text-sm font-medium text-zinc-800" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(cat.total)}</span>
-                  <div className="w-20 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-                    <div className="h-full rounded-full" style={{ background: cat.color, width: `${Math.min(100, (cat.total / Math.abs(totalOut)) * 100)}%` }} />
-                  </div>
                 </div>
               ))}
             </div>

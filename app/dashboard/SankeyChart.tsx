@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Sankey, Tooltip, ResponsiveContainer, Rectangle } from "recharts";
 
 interface CategoryData {
@@ -17,12 +18,20 @@ interface Props {
 }
 
 export default function SankeyChart({ categories, totalSpending, totalIncome, monthLabel }: Props) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const hasExpenses = categories.length > 0 && totalSpending > 0;
   const hasIncome   = totalIncome > 0;
 
   if (!hasExpenses && !hasIncome) return null;
 
-  // Nodes: [Einnahmen?, Monat, ...Kategorien]
   const nodes: { name: string }[] = [];
   let incomeIdx = -1;
   let monthIdx  = 0;
@@ -32,7 +41,7 @@ export default function SankeyChart({ categories, totalSpending, totalIncome, mo
     nodes.push({ name: "Einnahmen" });
   }
   monthIdx = nodes.length;
-  nodes.push({ name: monthLabel });
+  nodes.push({ name: isMobile ? monthLabel.split(" ")[0] : monthLabel });
 
   const categoryStartIdx = nodes.length;
   if (hasExpenses) {
@@ -40,33 +49,29 @@ export default function SankeyChart({ categories, totalSpending, totalIncome, mo
   }
 
   const links: { source: number; target: number; value: number }[] = [];
+  if (hasIncome)   links.push({ source: incomeIdx, target: monthIdx, value: totalIncome });
+  if (hasExpenses) categories.forEach((c, i) => links.push({ source: monthIdx, target: categoryStartIdx + i, value: c.total }));
 
-  if (hasIncome) {
-    links.push({ source: incomeIdx, target: monthIdx, value: totalIncome });
-  }
-  if (hasExpenses) {
-    categories.forEach((c, i) => {
-      links.push({ source: monthIdx, target: categoryStartIdx + i, value: c.total });
-    });
-  }
-
-  // Farben pro Node-Index
   const nodeColors: Record<number, string> = {};
   if (hasIncome) nodeColors[incomeIdx] = "#16a34a";
   nodeColors[monthIdx] = "#18181b";
-  if (hasExpenses) {
-    categories.forEach((c, i) => {
-      nodeColors[categoryStartIdx + i] = c.color;
-    });
-  }
+  if (hasExpenses) categories.forEach((c, i) => { nodeColors[categoryStartIdx + i] = c.color; });
+
+  const margin = isMobile
+    ? { top: 5, right: 85, bottom: 5, left: hasIncome ? 65 : 5 }
+    : { top: 8, right: 180, bottom: 8, left: hasIncome ? 120 : 8 };
+
+  const height = isMobile
+    ? (hasIncome && hasExpenses ? 240 : 180)
+    : (hasIncome && hasExpenses ? 320 : 240);
 
   return (
-    <ResponsiveContainer width="100%" height={hasIncome && hasExpenses ? 320 : 240}>
+    <ResponsiveContainer width="100%" height={height}>
       <Sankey
         data={{ nodes, links }}
-        nodePadding={12}
-        nodeWidth={16}
-        margin={{ top: 8, right: 180, bottom: 8, left: hasIncome ? 120 : 8 }}
+        nodePadding={isMobile ? 8 : 12}
+        nodeWidth={isMobile ? 10 : 16}
+        margin={margin}
         node={({ x, y, width, height, index }: { x: number; y: number; width: number; height: number; index: number }) => (
           <Rectangle
             x={x} y={y} width={width} height={height}
@@ -88,7 +93,7 @@ export default function SankeyChart({ categories, totalSpending, totalIncome, mo
             border: "1px solid #e4e4e7",
             borderRadius: "6px",
             color: "#18181b",
-            fontSize: "0.8rem",
+            fontSize: isMobile ? "0.7rem" : "0.8rem",
             boxShadow: "0 1px 6px rgba(0,0,0,0.08)",
           }}
         />
