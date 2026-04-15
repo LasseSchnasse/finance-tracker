@@ -68,6 +68,12 @@ export default async function DashboardPage({
 
   const txList       = transactions ?? [];
   const totalOut     = txList.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const soExpenses   = (standingOrders ?? []).filter(s => s.amount < 0).reduce((sum, s) => {
+    let monthly = Math.abs(s.amount);
+    if (s.interval === "weekly")  monthly *= 4.33;
+    if (s.interval === "yearly")  monthly /= 12;
+    return sum + monthly;
+  }, 0);
   const soIncome     = (standingOrders ?? []).filter(s => s.amount > 0).reduce((sum, s) => {
     let monthly = s.amount;
     if (s.interval === "weekly")  monthly *= 4.33;
@@ -132,9 +138,9 @@ export default async function DashboardPage({
           <div className="pr-4 sm:pr-8 border-r border-zinc-100">
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-1">Ausgaben</p>
             <p className="text-2xl sm:text-4xl font-semibold tracking-tight text-zinc-900 truncate" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {fmt(Math.abs(totalOut))}
+              {fmt(Math.abs(totalOut) + soExpenses)}
             </p>
-            <p className="text-[10px] text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Transaktionen</p>
+            <p className="text-[10px] text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Transaktionen + Daueraufträge</p>
           </div>
           <div className="pl-4 sm:px-8 sm:border-r border-zinc-100">
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-1">Einnahmen</p>
