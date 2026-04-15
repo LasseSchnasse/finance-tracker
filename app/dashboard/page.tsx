@@ -81,7 +81,7 @@ export default async function DashboardPage({
     return sum + monthly;
   }, 0);
   const totalIn      = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0) + soIncome;
-  const largestTx    = txList.filter(t => t.amount < 0).sort((a, b) => a.amount - b.amount)[0] ?? null;
+
 
   // Kategorie-Aggregation für Sankey
   const catMap: Record<string, { total: number; color: string; icon: string }> = {};
@@ -150,11 +150,11 @@ export default async function DashboardPage({
             <p className="text-[10px] text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Buchungen</p>
           </div>
           <div className="hidden sm:block pl-8">
-            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Größte Ausgabe</p>
-            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {largestTx ? fmt(Math.abs(largestTx.amount), largestTx.currency) : "—"}
+            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Überschuss</p>
+            <p className="text-4xl font-semibold tracking-tight truncate" style={{ fontVariantNumeric: "tabular-nums", color: totalIn - (Math.abs(totalOut) + soExpenses) >= 0 ? "#16a34a" : "#dc2626" }}>
+              {fmt(totalIn - (Math.abs(totalOut) + soExpenses))}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">{largestTx?.merchant ?? "—"}</p>
+            <p className="text-xs text-zinc-400 mt-1">Einnahmen − Ausgaben</p>
           </div>
         </div>
 

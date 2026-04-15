@@ -27,15 +27,9 @@ export default function SankeyChart({ categories, totalSpending, totalIncome, mo
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Sankey-Balancierung: Überschuss-Knoten wenn Einnahmen > Ausgaben
   const totalCategoryExpenses = categories.reduce((sum, c) => sum + c.total, 0);
-  const surplus = totalIncome - totalCategoryExpenses;
-  const displayCategories: CategoryData[] =
-    surplus > 0.01 && totalIncome > 0
-      ? [...categories, { name: "Überschuss", total: surplus, color: "#d1d5db", icon: "💰" }]
-      : categories;
 
-  const hasExpenses = displayCategories.length > 0 && displayCategories.some(c => c.total > 0);
+  const hasExpenses = categories.length > 0 && categories.some(c => c.total > 0);
   const hasIncome   = totalIncome > 0;
 
   if (!hasExpenses && !hasIncome) return null;
@@ -53,17 +47,20 @@ export default function SankeyChart({ categories, totalSpending, totalIncome, mo
 
   const categoryStartIdx = nodes.length;
   if (hasExpenses) {
-    displayCategories.forEach(c => nodes.push({ name: c.name }));
+    categories.forEach(c => nodes.push({ name: c.name }));
   }
 
+  // Einnahmen-Link auf Ausgaben kappen damit der Sankey immer balanciert ist
+  const incomeLink = Math.min(totalIncome, totalCategoryExpenses);
+
   const links: { source: number; target: number; value: number }[] = [];
-  if (hasIncome)   links.push({ source: incomeIdx, target: monthIdx, value: totalIncome });
-  if (hasExpenses) displayCategories.forEach((c, i) => links.push({ source: monthIdx, target: categoryStartIdx + i, value: c.total }));
+  if (hasIncome && incomeLink > 0) links.push({ source: incomeIdx, target: monthIdx, value: incomeLink });
+  if (hasExpenses) categories.forEach((c, i) => links.push({ source: monthIdx, target: categoryStartIdx + i, value: c.total }));
 
   const nodeColors: Record<number, string> = {};
   if (hasIncome) nodeColors[incomeIdx] = "#16a34a";
   nodeColors[monthIdx] = "#18181b";
-  if (hasExpenses) displayCategories.forEach((c, i) => { nodeColors[categoryStartIdx + i] = c.color; });
+  if (hasExpenses) categories.forEach((c, i) => { nodeColors[categoryStartIdx + i] = c.color; });
 
   const margin = isMobile
     ? { top: 5, right: 85, bottom: 5, left: hasIncome ? 65 : 5 }
