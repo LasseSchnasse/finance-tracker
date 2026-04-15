@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 import MonthNav from "./MonthNav";
 import SankeyChart from "./SankeyChart";
 import AddTransaction from "./AddTransaction";
@@ -132,7 +134,7 @@ export default async function DashboardPage({
         </div>
 
         {/* Sankey */}
-        {categoryData.length > 0 && (
+        {(categoryData.length > 0 || totalIn > 0) && (
           <section className="mb-16">
             <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-6">
               Verteilung {MONTHS[month - 1]}
@@ -140,6 +142,7 @@ export default async function DashboardPage({
             <SankeyChart
               categories={categoryData}
               totalSpending={Math.abs(totalOut)}
+              totalIncome={totalIn}
               monthLabel={`${MONTHS[month - 1]} ${year}`}
             />
             {/* Legende */}

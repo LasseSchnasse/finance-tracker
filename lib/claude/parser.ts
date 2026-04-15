@@ -40,6 +40,7 @@ Categories (use exactly these names):
 - "Unterhaltung"   → streaming, cinema, gaming, sports (Netflix, Spotify, Steam, Kino)
 - "Wohnen"         → rent, utilities, insurance for home (Miete, Strom, Gas, Internet, Telekom)
 - "Versicherung"   → insurance payments (Versicherung, HUK, Allianz, AOK)
+- "Einnahmen"      → salary, wages, income, transfers received (Gehalt, Lohn, Gutschrift, Überweisung erhalten, Eingang)
 - "Sonstiges"      → anything that doesn't fit the above
 
 Rules:

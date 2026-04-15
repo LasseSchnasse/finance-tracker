@@ -12,36 +12,65 @@ interface CategoryData {
 interface Props {
   categories: CategoryData[];
   totalSpending: number;
+  totalIncome: number;
   monthLabel: string;
 }
 
-export default function SankeyChart({ categories, totalSpending, monthLabel }: Props) {
-  if (categories.length === 0 || totalSpending === 0) return null;
+export default function SankeyChart({ categories, totalSpending, totalIncome, monthLabel }: Props) {
+  const hasExpenses = categories.length > 0 && totalSpending > 0;
+  const hasIncome   = totalIncome > 0;
 
-  const nodes = [
-    { name: monthLabel },
-    ...categories.map(c => ({ name: c.name })),
-  ];
+  if (!hasExpenses && !hasIncome) return null;
 
-  const links = categories.map((c, i) => ({
-    source: 0,
-    target: i + 1,
-    value: c.total,
-  }));
+  // Nodes: [Einnahmen?, Monat, ...Kategorien]
+  const nodes: { name: string }[] = [];
+  let incomeIdx = -1;
+  let monthIdx  = 0;
 
-  const colors = categories.map(c => c.color);
+  if (hasIncome) {
+    incomeIdx = nodes.length;
+    nodes.push({ name: "Einnahmen" });
+  }
+  monthIdx = nodes.length;
+  nodes.push({ name: monthLabel });
+
+  const categoryStartIdx = nodes.length;
+  if (hasExpenses) {
+    categories.forEach(c => nodes.push({ name: c.name }));
+  }
+
+  const links: { source: number; target: number; value: number }[] = [];
+
+  if (hasIncome) {
+    links.push({ source: incomeIdx, target: monthIdx, value: totalIncome });
+  }
+  if (hasExpenses) {
+    categories.forEach((c, i) => {
+      links.push({ source: monthIdx, target: categoryStartIdx + i, value: c.total });
+    });
+  }
+
+  // Farben pro Node-Index
+  const nodeColors: Record<number, string> = {};
+  if (hasIncome) nodeColors[incomeIdx] = "#16a34a";
+  nodeColors[monthIdx] = "#18181b";
+  if (hasExpenses) {
+    categories.forEach((c, i) => {
+      nodeColors[categoryStartIdx + i] = c.color;
+    });
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={hasIncome && hasExpenses ? 320 : 240}>
       <Sankey
         data={{ nodes, links }}
         nodePadding={12}
         nodeWidth={16}
-        margin={{ top: 8, right: 180, bottom: 8, left: 8 }}
+        margin={{ top: 8, right: 180, bottom: 8, left: hasIncome ? 120 : 8 }}
         node={({ x, y, width, height, index }: { x: number; y: number; width: number; height: number; index: number }) => (
           <Rectangle
             x={x} y={y} width={width} height={height}
-            fill={index === 0 ? "#18181b" : (colors[index - 1] ?? "#6366f1")}
+            fill={nodeColors[index] ?? "#6366f1"}
             fillOpacity={0.85}
             radius={3}
           />
