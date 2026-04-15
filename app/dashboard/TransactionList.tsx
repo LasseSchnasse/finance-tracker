@@ -49,12 +49,15 @@ export default function TransactionList({ transactions }: { transactions: Transa
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <span className="text-xs text-zinc-300">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <span className="hidden sm:block text-xs text-zinc-300">
+              {new Date(t.transacted_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
+            </span>
+            <span className="sm:hidden text-xs text-zinc-300">
               {new Date(t.transacted_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
             </span>
             <span
-              className="text-sm font-medium w-24 text-right"
+              className="text-sm font-medium w-20 sm:w-24 text-right"
               style={{ fontVariantNumeric: "tabular-nums", color: t.amount < 0 ? "#dc2626" : "#16a34a" }}
             >
               {t.amount > 0 ? "+" : ""}{fmt(t.amount, t.currency)}
@@ -62,9 +65,9 @@ export default function TransactionList({ transactions }: { transactions: Transa
             <button
               onClick={() => handleDelete(t.id)}
               disabled={deleting === t.id}
-              className="text-xs text-zinc-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50 w-10 text-right"
+              className="text-xs text-zinc-300 hover:text-red-400 active:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50"
             >
-              {deleting === t.id ? "…" : "Löschen"}
+              {deleting === t.id ? "…" : "✕"}
             </button>
           </div>
         </div>

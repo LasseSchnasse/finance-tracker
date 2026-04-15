@@ -72,27 +72,27 @@ export default function AddTransaction() {
       <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-4">Transaktion hinzufügen</h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <input
             ref={inputRef}
             type="text"
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder={isRecurring ? "z.B. Miete 800€ · Netflix 12,99 · Fitnessstudio 29€" : "z.B. Rewe 25€ · Tankstelle 60€ · Amazon 34,99"}
+            placeholder={isRecurring ? "Miete 800 · Netflix 12,99" : "Rewe 25 · Tankstelle 60"}
             disabled={loading}
-            className="flex-1 text-sm bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5 text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-400 disabled:opacity-50 transition-colors"
+            className="flex-1 min-w-0 text-sm bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-3 text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-400 disabled:opacity-50 transition-colors"
           />
           <button
             type="submit"
             disabled={!text.trim() || loading}
-            className="text-sm font-medium px-5 py-2.5 rounded-lg bg-zinc-900 text-white disabled:opacity-30 hover:bg-zinc-700 transition-colors whitespace-nowrap"
+            className="text-sm font-medium px-4 py-3 rounded-lg bg-zinc-900 text-white disabled:opacity-30 hover:bg-zinc-700 transition-colors whitespace-nowrap flex-shrink-0"
           >
-            {loading ? "…" : isRecurring ? "Dauerauftrag speichern" : "Hinzufügen"}
+            {loading ? "…" : "+"}
           </button>
         </div>
 
         {/* Dauerauftrag Toggle */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setIsRecurring(r => !r)}
@@ -105,24 +105,20 @@ export default function AddTransaction() {
             Dauerauftrag
           </button>
 
-          {isRecurring && (
-            <div className="flex gap-2">
-              {INTERVALS.map(i => (
-                <button
-                  key={i.value}
-                  type="button"
-                  onClick={() => setInterval(i.value)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                    interval === i.value
-                      ? "bg-zinc-100 text-zinc-800 border-zinc-300"
-                      : "bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300"
-                  }`}
-                >
-                  {i.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {isRecurring && INTERVALS.map(i => (
+            <button
+              key={i.value}
+              type="button"
+              onClick={() => setInterval(i.value)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                interval === i.value
+                  ? "bg-zinc-100 text-zinc-800 border-zinc-300"
+                  : "bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300"
+              }`}
+            >
+              {i.label}
+            </button>
+          ))}
         </div>
       </form>
 

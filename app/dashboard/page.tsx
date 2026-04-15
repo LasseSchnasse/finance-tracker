@@ -117,44 +117,47 @@ export default async function DashboardPage({
     <div className="min-h-screen bg-white">
 
       {/* Top bar */}
-      <header className="border-b border-zinc-100 px-8 py-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-zinc-400 tracking-wide uppercase">Finance Tracker</span>
-        <div className="flex items-center gap-6">
+      <header className="border-b border-zinc-100 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
+        <span className="text-sm font-medium text-zinc-400 tracking-wide uppercase">Finance</span>
+        <div className="flex items-center gap-3 sm:gap-6">
           <MonthNav year={year} month={month} />
-          <span className="text-xs text-zinc-300">{user.email}</span>
+          <span className="hidden sm:block text-xs text-zinc-300">{user.email}</span>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-8 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-12">
 
-        {/* KPI Row — kein Card, nur Zahlen */}
-        <div className="grid grid-cols-3 gap-0 mb-16">
-          <div className="pr-8 border-r border-zinc-100">
-            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Ausgaben</p>
-            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+        {/* KPI Row */}
+        <div className="grid grid-cols-3 gap-0 mb-8 sm:mb-16">
+          <div className="pr-4 sm:pr-8 border-r border-zinc-100">
+            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Ausgaben</p>
+            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
               {fmt(Math.abs(totalOut))}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Transaktionen</p>
+            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount < 0).length} Tx</p>
           </div>
-          <div className="px-8 border-r border-zinc-100">
-            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Einnahmen</p>
-            <p className="text-4xl font-semibold tracking-tight text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="px-4 sm:px-8 border-r border-zinc-100">
+            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Einnahmen</p>
+            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-emerald-600" style={{ fontVariantNumeric: "tabular-nums" }}>
               {fmt(totalIn)}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Buchungen</p>
+            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1">{txList.filter(t => t.amount > 0).length} Tx</p>
           </div>
-          <div className="pl-8">
-            <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Größte Ausgabe</p>
-            <p className="text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="pl-4 sm:pl-8">
+            <p className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-1 sm:mb-2">Größte</p>
+            <p className="text-xl sm:text-4xl font-semibold tracking-tight text-zinc-900" style={{ fontVariantNumeric: "tabular-nums" }}>
               {largestTx ? fmt(Math.abs(largestTx.amount), largestTx.currency) : "—"}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">{largestTx?.merchant ?? "—"}</p>
+            <p className="text-[10px] sm:text-xs text-zinc-400 mt-1 truncate">{largestTx?.merchant ?? "—"}</p>
           </div>
         </div>
 
-        {/* Sankey */}
+        {/* Eingabe — auf Mobile ganz oben */}
+        <AddTransaction />
+
+        {/* Sankey — nur auf größeren Screens */}
         {(categoryData.length > 0 || totalIn > 0) && (
-          <section className="mb-16">
+          <section className="hidden sm:block mb-16">
             <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-6">
               Verteilung {MONTHS[month - 1]}
             </h2>
@@ -164,7 +167,6 @@ export default async function DashboardPage({
               totalIncome={totalIn}
               monthLabel={`${MONTHS[month - 1]} ${year}`}
             />
-            {/* Legende */}
             <div className="flex flex-wrap gap-x-6 gap-y-2 mt-5">
               {categoryData.map(cat => (
                 <div key={cat.name} className="flex items-center gap-2">
@@ -177,16 +179,31 @@ export default async function DashboardPage({
           </section>
         )}
 
+        {/* Kategorie-Übersicht auf Mobile statt Sankey */}
+        {categoryData.length > 0 && (
+          <section className="sm:hidden mb-8">
+            <h2 className="text-[10px] text-zinc-400 uppercase tracking-widest mb-3">Kategorien</h2>
+            <div className="flex flex-col gap-2">
+              {categoryData.map(cat => (
+                <div key={cat.name} className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                  <span className="text-sm text-zinc-600 flex-1">{cat.name}</span>
+                  <span className="text-sm font-medium text-zinc-800" style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(cat.total)}</span>
+                  <div className="w-20 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ background: cat.color, width: `${Math.min(100, (cat.total / Math.abs(totalOut)) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Daueraufträge */}
         <StandingOrders orders={standingOrders ?? []} />
 
-        {/* Eingabe */}
-        <AddTransaction />
-
         {/* Transaktionsliste */}
         <section>
-          <h2 className="text-xs text-zinc-400 uppercase tracking-widest mb-4">Transaktionen</h2>
-
+          <h2 className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-4">Transaktionen</h2>
           {txList.length === 0 ? (
             <p className="text-sm text-zinc-300 py-12 text-center">
               Keine Transaktionen in {MONTHS[month - 1]}.
@@ -196,7 +213,6 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {/* Webhook — dezent am Seitenende */}
         {webhookUrl && (
           <div className="mt-16 pt-8 border-t border-zinc-100">
             <p className="text-xs text-zinc-400 uppercase tracking-widest mb-2">Webhook URL</p>

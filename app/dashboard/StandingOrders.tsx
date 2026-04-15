@@ -95,47 +95,43 @@ export default function StandingOrders({ orders }: { orders: StandingOrder[] }) 
           <div key={o.id}>
             {editing === o.id ? (
               /* Inline-Bearbeitungszeile */
-              <div className="flex items-center gap-3 py-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ background: `${o.categories?.color ?? "#6366f1"}18` }}
-                >
-                  {o.categories?.icon ?? "🔁"}
+              <div className="flex flex-col gap-2 py-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editState.merchant}
+                    onChange={e => setEditState(s => ({ ...s, merchant: e.target.value }))}
+                    placeholder="Name"
+                    className="text-sm border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-0 focus:outline-none focus:border-zinc-400"
+                  />
+                  <input
+                    type="text"
+                    value={editState.amount}
+                    onChange={e => setEditState(s => ({ ...s, amount: e.target.value }))}
+                    placeholder="Betrag"
+                    className="text-sm border border-zinc-200 rounded-lg px-3 py-2 w-24 focus:outline-none focus:border-zinc-400"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={editState.merchant}
-                  onChange={e => setEditState(s => ({ ...s, merchant: e.target.value }))}
-                  placeholder="Name"
-                  className="text-sm border border-zinc-200 rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:border-zinc-400"
-                />
-                <input
-                  type="text"
-                  value={editState.amount}
-                  onChange={e => setEditState(s => ({ ...s, amount: e.target.value }))}
-                  placeholder="Betrag"
-                  className="text-sm border border-zinc-200 rounded-lg px-3 py-1.5 w-24 focus:outline-none focus:border-zinc-400"
-                />
-                <select
-                  value={editState.interval}
-                  onChange={e => setEditState(s => ({ ...s, interval: e.target.value }))}
-                  className="text-sm border border-zinc-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-zinc-400 bg-white"
-                >
-                  {INTERVALS.map(i => (
-                    <option key={i} value={i}>{INTERVAL_LABEL[i]}</option>
-                  ))}
-                </select>
-                <div className="flex gap-2 ml-auto">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={editState.interval}
+                    onChange={e => setEditState(s => ({ ...s, interval: e.target.value }))}
+                    className="text-sm border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 bg-white flex-1"
+                  >
+                    {INTERVALS.map(i => (
+                      <option key={i} value={i}>{INTERVAL_LABEL[i]}</option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => handleSave(o)}
                     disabled={saving}
-                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 disabled:opacity-50 px-3 py-2"
                   >
                     {saving ? "…" : "Speichern"}
                   </button>
                   <button
                     onClick={cancelEdit}
-                    className="text-xs text-zinc-400 hover:text-zinc-600"
+                    className="text-xs text-zinc-400 hover:text-zinc-600 px-2 py-2"
                   >
                     Abbrechen
                   </button>
