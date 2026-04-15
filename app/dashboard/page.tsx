@@ -47,7 +47,7 @@ export default async function DashboardPage({
   const endOfMonth   = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
 
   const [{ data: profile }, { data: transactions }, { data: allCategories }, { data: standingOrders }] = await Promise.all([
-    supabase.from("profiles").select("webhook_secret").eq("id", user.id).single(),
+    supabase.from("profiles").select("webhook_secret, onboarding_completed").eq("id", user.id).single(),
     supabase
       .from("transactions")
       .select("id, amount, currency, merchant, transacted_at, categories ( name, color, icon )")
@@ -65,6 +65,8 @@ export default async function DashboardPage({
       .order("created_at", { ascending: false })
       .returns<StandingOrder[]>(),
   ]);
+
+  if (profile && !profile.onboarding_completed) redirect("/onboarding");
 
   const txList       = transactions ?? [];
   const totalOut     = txList.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
