@@ -40,7 +40,7 @@ Categories (use exactly these names):
 - "Transport"      → fuel, public transport, taxis, parking, car (Aral, Shell, DB, Uber, Tankstelle, Parkhaus, ÖPNV)
 - "Shopping"       → clothing, electronics, online shopping (Amazon, Zalando, H&M, MediaMarkt, Ebay)
 - "Gesundheit"     → pharmacies, doctors, medical, optician (Apotheke, Arzt, Krankenhaus, Optiker, Zahnarzt)
-- "Sport"          → gym, fitness studio, sports club, sports courses, sports equipment (Fitnessstudio, McFit, Sport, Sportverein, Sportkurs, Sportausrüstung)
+- "Sport"          → gym, fitness studio, sports club, sports courses, sports equipment (Fitnessstudio, FitX, McFit, PureGym, Sport, Sportverein, Sportkurs, Sportausrüstung)
 - "Unterhaltung"   → streaming, cinema, gaming, subscriptions, passes, memberships (Netflix, Spotify, Steam, Kino, Goldpass, Pass, Abo)
 - "Wohnen"         → rent, utilities, home insurance, internet (Miete, Strom, Gas, Internet, Telekom, Nebenkosten)
 - "Versicherung"   → insurance payments (Versicherung, HUK, Allianz, AOK, KFZ)
