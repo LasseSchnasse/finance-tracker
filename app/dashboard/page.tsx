@@ -68,12 +68,19 @@ export default async function DashboardPage({
 
   const txList       = transactions ?? [];
   const totalOut     = txList.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-  const soIncome     = (standingOrders ?? []).filter(s => s.amount > 0).reduce((sum, s) => {
-    let monthly = s.amount;
-    if (s.interval === "weekly")  monthly *= 4.33;
-    if (s.interval === "yearly")  monthly /= 12;
-    return sum + monthly;
-  }, 0);
+
+  // Daueraufträge nur für zukünftige Monate als Prognose einrechnen
+  const isFutureMonth = year > now.getFullYear() ||
+    (year === now.getFullYear() && month > now.getMonth() + 1);
+
+  const soIncome = isFutureMonth
+    ? (standingOrders ?? []).filter(s => s.amount > 0).reduce((sum, s) => {
+        let monthly = s.amount;
+        if (s.interval === "weekly")  monthly *= 4.33;
+        if (s.interval === "yearly")  monthly /= 12;
+        return sum + monthly;
+      }, 0)
+    : 0;
   const totalIn      = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0) + soIncome;
   const largestTx    = txList.filter(t => t.amount < 0).sort((a, b) => a.amount - b.amount)[0] ?? null;
 
@@ -89,17 +96,19 @@ export default async function DashboardPage({
     if (!catMap[name]) catMap[name] = { total: 0, color, icon };
     catMap[name].total += Math.abs(tx.amount);
   }
-  // Daueraufträge als monatliches Äquivalent einrechnen
-  for (const so of standingOrders ?? []) {
-    if (so.amount >= 0) continue; // Einnahmen-Daueraufträge überspringen
-    const name  = so.categories?.name  ?? "Sonstiges";
-    const color = so.categories?.color ?? "#9ca3af";
-    const icon  = so.categories?.icon  ?? "🔁";
-    if (!catMap[name]) catMap[name] = { total: 0, color, icon };
-    let monthly = Math.abs(so.amount);
-    if (so.interval === "weekly")  monthly *= 4.33;
-    if (so.interval === "yearly")  monthly /= 12;
-    catMap[name].total += monthly;
+  // Daueraufträge nur für zukünftige Monate als Prognose einrechnen
+  if (isFutureMonth) {
+    for (const so of standingOrders ?? []) {
+      if (so.amount >= 0) continue; // Einnahmen-Daueraufträge überspringen
+      const name  = so.categories?.name  ?? "Sonstiges";
+      const color = so.categories?.color ?? "#9ca3af";
+      const icon  = so.categories?.icon  ?? "🔁";
+      if (!catMap[name]) catMap[name] = { total: 0, color, icon };
+      let monthly = Math.abs(so.amount);
+      if (so.interval === "weekly")  monthly *= 4.33;
+      if (so.interval === "yearly")  monthly /= 12;
+      catMap[name].total += monthly;
+    }
   }
   const categoryData = Object.entries(catMap)
     .map(([name, d]) => ({ name, ...d }))
@@ -159,7 +168,7 @@ export default async function DashboardPage({
         {(categoryData.length > 0 || totalIn > 0) && (
           <section className="mb-8 sm:mb-16">
             <h2 className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-widest mb-4 sm:mb-6">
-              Verteilung {MONTHS[month - 1]}
+              {isFutureMonth ? `Prognose ${MONTHS[month - 1]}` : `Verteilung ${MONTHS[month - 1]}`}
             </h2>
             <SankeyChart
               categories={categoryData}
