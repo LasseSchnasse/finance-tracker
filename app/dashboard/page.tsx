@@ -68,7 +68,13 @@ export default async function DashboardPage({
 
   const txList       = transactions ?? [];
   const totalOut     = txList.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-  const totalIn      = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const soIncome     = (standingOrders ?? []).filter(s => s.amount > 0).reduce((sum, s) => {
+    let monthly = s.amount;
+    if (s.interval === "weekly")  monthly *= 4.33;
+    if (s.interval === "yearly")  monthly /= 12;
+    return sum + monthly;
+  }, 0);
+  const totalIn      = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0) + soIncome;
   const largestTx    = txList.filter(t => t.amount < 0).sort((a, b) => a.amount - b.amount)[0] ?? null;
 
   // Kategorie-Aggregation für Sankey
@@ -82,6 +88,18 @@ export default async function DashboardPage({
     const icon  = tx.categories?.icon  ?? "📋";
     if (!catMap[name]) catMap[name] = { total: 0, color, icon };
     catMap[name].total += Math.abs(tx.amount);
+  }
+  // Daueraufträge als monatliches Äquivalent einrechnen
+  for (const so of standingOrders ?? []) {
+    if (so.amount >= 0) continue; // Einnahmen-Daueraufträge überspringen
+    const name  = so.categories?.name  ?? "Sonstiges";
+    const color = so.categories?.color ?? "#9ca3af";
+    const icon  = so.categories?.icon  ?? "🔁";
+    if (!catMap[name]) catMap[name] = { total: 0, color, icon };
+    let monthly = Math.abs(so.amount);
+    if (so.interval === "weekly")  monthly *= 4.33;
+    if (so.interval === "yearly")  monthly /= 12;
+    catMap[name].total += monthly;
   }
   const categoryData = Object.entries(catMap)
     .map(([name, d]) => ({ name, ...d }))
