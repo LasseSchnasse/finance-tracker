@@ -6,6 +6,7 @@ import MonthNav from "./MonthNav";
 import SankeyChart from "./SankeyChart";
 import AddTransaction from "./AddTransaction";
 import StandingOrders from "./StandingOrders";
+import TransactionList from "./TransactionList";
 
 const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 
@@ -173,39 +174,7 @@ export default async function DashboardPage({
               Keine Transaktionen in {MONTHS[month - 1]}.
             </p>
           ) : (
-            <div className="divide-y divide-zinc-100">
-              {txList.map(t => (
-                <div key={t.id} className="flex items-center justify-between py-3.5 group">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                      style={{ background: `${t.categories?.color ?? "#6366f1"}18` }}
-                    >
-                      {t.categories?.icon ?? "💳"}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-800 leading-none">
-                        {t.merchant ?? "Unbekannt"}
-                      </p>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        {t.categories?.name ?? "Sonstiges"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-8">
-                    <span className="text-xs text-zinc-300">
-                      {new Date(t.transacted_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}
-                    </span>
-                    <span
-                      className="text-sm font-medium w-24 text-right"
-                      style={{ fontVariantNumeric: "tabular-nums", color: t.amount < 0 ? "#dc2626" : "#16a34a" }}
-                    >
-                      {t.amount > 0 ? "+" : ""}{fmt(t.amount, t.currency)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <TransactionList transactions={txList} />
           )}
         </section>
 
