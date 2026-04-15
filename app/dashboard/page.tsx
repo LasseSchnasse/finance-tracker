@@ -2,8 +2,20 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import MonthNav from "./MonthNav";
 import SankeyChart from "./SankeyChart";
+import AddTransaction from "./AddTransaction";
+import StandingOrders from "./StandingOrders";
 
 const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+interface StandingOrder {
+  id: string;
+  amount: number;
+  currency: string;
+  merchant: string | null;
+  interval: string;
+  day_of_month: number | null;
+  categories: { name: string; color: string; icon: string } | null;
+}
 
 interface Transaction {
   id: string;
@@ -31,7 +43,7 @@ export default async function DashboardPage({
   const startOfMonth = new Date(year, month - 1, 1).toISOString();
   const endOfMonth   = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
 
-  const [{ data: profile }, { data: transactions }, { data: allCategories }] = await Promise.all([
+  const [{ data: profile }, { data: transactions }, { data: allCategories }, { data: standingOrders }] = await Promise.all([
     supabase.from("profiles").select("webhook_secret").eq("id", user.id).single(),
     supabase
       .from("transactions")
@@ -42,6 +54,13 @@ export default async function DashboardPage({
       .order("transacted_at", { ascending: false })
       .returns<Transaction[]>(),
     supabase.from("categories").select("name, color, icon").is("user_id", null),
+    supabase
+      .from("standing_orders")
+      .select("id, amount, currency, merchant, interval, day_of_month, categories ( name, color, icon )")
+      .eq("user_id", user.id)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .returns<StandingOrder[]>(),
   ]);
 
   const txList       = transactions ?? [];
@@ -135,6 +154,12 @@ export default async function DashboardPage({
             </div>
           </section>
         )}
+
+        {/* Daueraufträge */}
+        <StandingOrders orders={standingOrders ?? []} />
+
+        {/* Eingabe */}
+        <AddTransaction />
 
         {/* Transaktionsliste */}
         <section>
